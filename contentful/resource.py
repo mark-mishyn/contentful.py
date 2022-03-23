@@ -1,3 +1,5 @@
+from collections import defaultdict
+
 import dateutil.parser
 
 from .utils import snake_case
@@ -14,6 +16,8 @@ API Reference: https://www.contentful.com/developers/docs/references/content-del
 :copyright: (c) 2016 by Contentful GmbH.
 :license: MIT, see LICENSE for more details.
 """
+
+ASSETS_URLS_MAP = defaultdict(dict)
 
 
 class Resource(object):
@@ -135,14 +139,20 @@ class FieldsResource(Resource):
             for locale, v in locales.items():
                 if locale not in fields:
                     fields[locale] = {}
-                fields[locale][snake_case(k)] = self._coerce(
-                    snake_case(k),
-                    v,
-                    True,
-                    includes,
-                    errors,
-                    resources=resources
-                )
+                value = self._coerce(snake_case(k), v, True, includes, errors, resources=resources)
+                if k == 'file':
+                    ASSETS_URLS_MAP[locale][self.raw['sys']['id']] = value
+                fields[locale][snake_case(k)] = value
+
+        if self.raw['sys']['type'] == 'Entry':
+            for locale, value in fields.items():
+                for k, v in value.items():
+                    if not isinstance(v, dict):
+                        continue
+                    for i, content in enumerate(v.get('content', [])):
+                        if content.get('data'):
+                            fields[locale][k]['content'][i]['data']['target'].file = \
+                                ASSETS_URLS_MAP[locale][content['data']['target'].id]
 
     def _hydrate_non_localized_entry(self, fields, item, includes, errors, resources=None):
         for k, v in item['fields'].items():
