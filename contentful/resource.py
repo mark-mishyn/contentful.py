@@ -151,8 +151,11 @@ class FieldsResource(Resource):
                         continue
                     for i, content in enumerate(v.get('content', [])):
                         if content.get('data'):
-                            fields[locale][k]['content'][i]['data']['target'].file = \
-                                ASSETS_URLS_MAP[locale][content['data']['target'].id]
+                            target = content['data']['target']
+                            target_id = target.get('id') if isinstance(target, dict) else target.id
+                            if ASSETS_URLS_MAP[locale].get(target_id):
+                                fields[locale][k]['content'][i]['data']['target'].file = \
+                                    ASSETS_URLS_MAP[locale][target_id]
 
     def _hydrate_non_localized_entry(self, fields, item, includes, errors, resources=None):
         for k, v in item['fields'].items():
