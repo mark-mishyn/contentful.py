@@ -13,4 +13,4 @@ from .content_type_field import ContentTypeField  # noqa: F401
 
 __version__ = "1.13.4"
 __author__ = "Contentful GmbH"
-__email__ = "bhushan.lodha@external.contentful.com"
+__email__ = "bhushan.lodha@external.contentful.com, mark.mishyn@gmail.com"
