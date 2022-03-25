@@ -135,6 +135,8 @@ class FieldsResource(Resource):
         return fields
 
     def _hydrate_localized_entry(self, fields, item, includes, errors, resources=None):
+        from .asset import Asset
+
         for k, locales in item['fields'].items():
             for locale, v in locales.items():
                 if locale not in fields:
@@ -147,15 +149,17 @@ class FieldsResource(Resource):
         if self.raw['sys']['type'] == 'Entry':
             for locale, value in fields.items():
                 for k, v in value.items():
-                    if not isinstance(v, dict):
-                        continue
-                    for i, content in enumerate(v.get('content', [])):
-                        if content.get('data'):
-                            target = content['data']['target']
-                            target_id = target.get('id') if isinstance(target, dict) else target.id
-                            if ASSETS_URLS_MAP[locale].get(target_id):
-                                fields[locale][k]['content'][i]['data']['target'].file = \
-                                    ASSETS_URLS_MAP[locale][target_id]
+                    if isinstance(v, dict):
+                        for i, content in enumerate(v.get('content', [])):
+                            if content.get('data'):
+                                target = content['data']['target']
+                                target_id = target.get('id') if isinstance(target, dict) else target.id
+                                if ASSETS_URLS_MAP[locale].get(target_id):
+                                    fields[locale][k]['content'][i]['data']['target'].file = \
+                                        ASSETS_URLS_MAP[locale][target_id]
+                    elif isinstance(v, Asset):
+                        if v._fields.get(locale):
+                            v.file = v._fields[locale]['file']
 
     def _hydrate_non_localized_entry(self, fields, item, includes, errors, resources=None):
         for k, v in item['fields'].items():
