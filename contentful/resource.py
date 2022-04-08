@@ -17,8 +17,6 @@ API Reference: https://www.contentful.com/developers/docs/references/content-del
 :license: MIT, see LICENSE for more details.
 """
 
-ASSETS_URLS_MAP = defaultdict(dict)
-
 
 class Resource(object):
     """
@@ -137,13 +135,15 @@ class FieldsResource(Resource):
     def _hydrate_localized_entry(self, fields, item, includes, errors, resources=None):
         from .asset import Asset
 
+        assets_urls_map = defaultdict(dict)
+
         for k, locales in item['fields'].items():
             for locale, v in locales.items():
                 if locale not in fields:
                     fields[locale] = {}
                 value = self._coerce(snake_case(k), v, True, includes, errors, resources=resources)
                 if k == 'file':
-                    ASSETS_URLS_MAP[locale][self.raw['sys']['id']] = value
+                    assets_urls_map[locale][self.raw['sys']['id']] = value
                 fields[locale][snake_case(k)] = value
 
         if self.raw['sys']['type'] == 'Entry':
@@ -154,11 +154,11 @@ class FieldsResource(Resource):
                             if content.get('data'):
                                 target = content['data']['target']
                                 target_id = target.get('id') if isinstance(target, dict) else target.id
-                                if ASSETS_URLS_MAP[locale].get(target_id):
+                                if assets_urls_map[locale].get(target_id):
                                     fields[locale][k]['content'][i]['data']['target'].file = \
-                                        ASSETS_URLS_MAP[locale][target_id]
+                                        assets_urls_map[locale][target_id]
                     elif isinstance(v, Asset):
-                        if v._fields.get(locale):
+                        if v._fields.get(locale) and v._fields[locale].get('file'):
                             v.file = v._fields[locale]['file']
 
     def _hydrate_non_localized_entry(self, fields, item, includes, errors, resources=None):

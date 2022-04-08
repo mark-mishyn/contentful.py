@@ -1,4 +1,6 @@
 import requests
+from requests.adapters import HTTPAdapter
+
 import platform
 from re import sub
 from .utils import ConfigurationException
@@ -6,7 +8,6 @@ from .utils import retry_request, string_class
 from .errors import get_error, RateLimitExceededError, EntryNotFoundError
 from .resource_builder import ResourceBuilder
 from .content_type_cache import ContentTypeCache
-
 
 """
 contentful.client
@@ -531,8 +532,6 @@ class Client(object):
         if not self.authorization_as_header:
             query.update({'access_token': self.access_token})
 
-        response = None
-
         self._normalize_query(query)
 
         kwargs = {
@@ -544,15 +543,14 @@ class Client(object):
         if self._has_proxy():
             kwargs['proxies'] = self._proxy_parameters()
 
-        response = requests.get(
-            self._url(url),
-            **kwargs
-        )
+        with requests.Session() as session:
+            session.mount(self._url(url), HTTPAdapter(max_retries=3))
+            response = session.get(self._url(url), **kwargs)
 
-        if response.status_code == 429:
-            raise RateLimitExceededError(response)
+            if response.status_code == 429:
+                raise RateLimitExceededError(response)
 
-        return response
+            return response
 
     def _get(self, url, query=None):
         """
